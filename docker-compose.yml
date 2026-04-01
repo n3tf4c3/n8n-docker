@@ -1,0 +1,129 @@
+﻿services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-ankane/pgvector:latest}
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - n8n_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  redis:
+    image: ${REDIS_IMAGE:-redis:7-alpine}
+    container_name: redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ./redis-data:/data
+    networks:
+      - n8n_net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  n8n-editor:
+    image: ${N8N_IMAGE:-n8nio/n8n:latest}
+    container_name: n8n-editor
+    ports:
+      - "${N8N_EDITOR_PORT:-5678}:5678"
+    volumes:
+      - ./n8n-data:/home/node/.n8n
+    environment:
+      GENERIC_TIMEZONE: ${TZ:-America/Cuiaba}
+      TZ: ${TZ:-America/Cuiaba}
+      # Apenas para ambiente local/dev: ignora erro de CA corporativa/self-signed
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-postgres}
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-postgres}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      QUEUE_BULL_REDIS_HOST: redis
+      QUEUE_BULL_REDIS_PORT: 6379
+      OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+    networks:
+      n8n-ftr:
+      observability_net:
+        aliases:
+          - n8n
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  n8n-worker:
+    image: ${N8N_IMAGE:-n8nio/n8n:latest}
+    container_name: n8n-worker
+    command: worker
+    volumes:
+      - ./n8n-data:/home/node/.n8n
+    environment:
+      GENERIC_TIMEZONE: ${TZ:-America/Cuiaba}
+      TZ: ${TZ:-America/Cuiaba}
+      # Apenas para ambiente local/dev: ignora erro de CA corporativa/self-signed
+      NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "false"
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-postgres}
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-postgres}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      QUEUE_BULL_REDIS_HOST: redis
+      QUEUE_BULL_REDIS_PORT: 6379
+      OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+    networks:
+      - n8n_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ngrok:
+  #   profiles: ["tunnel"]
+  #   image: ${NGROK_IMAGE:-ngrok/ngrok:latest}
+  #   container_name: ngrok
+  #   command:
+  #     - http
+  #     - --domain=${NGROK_DOMAIN:-}
+  #     - n8n-editor:5678
+  #   environment:
+  #     NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+  #   ports:
+  #     - "127.0.0.1:${NGROK_DASHBOARD_PORT:-4040}:4040"
+  #   networks:
+  #     - n8n_net
+  #   depends_on:
+  #     - n8n-editor
+  #   restart: unless-stopped
+
+networks:
+  n8n_net:
+    driver: bridge
+  observability_net:
+    external: true
