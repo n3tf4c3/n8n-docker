@@ -8,7 +8,6 @@ Stack local do n8n com PostgreSQL (pgvector) e Redis via Docker Compose.
 - `redis`: fila para execucao em modo worker.
 - `n8n-editor`: interface web do n8n.
 - `n8n-worker`: processamento de jobs em background.
-- `ngrok` (opcional): exemplo no compose, atualmente comentado.
 
 ## Pre-requisitos
 
@@ -95,4 +94,3 @@ Os dados locais ficam nestas pastas (ignoradas no Git):
 
 - Este projeto usa imagens fixadas por digest no `.env.example`, o que melhora reprodutibilidade.
 - `NODE_TLS_REJECT_UNAUTHORIZED=0` esta ativo no compose para ambiente local/dev. Nao use esse ajuste em producao.
-- Para usar `ngrok`, descomente o servico correspondente no `docker-compose.yml` e configure `NGROK_*` no `.env`.
