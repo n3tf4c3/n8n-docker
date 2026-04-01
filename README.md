@@ -12,8 +12,16 @@ Stack local do n8n com PostgreSQL (pgvector) e Redis via Docker Compose.
 
 ## Pre-requisitos
 
-- Docker e Docker Compose instalados.
+- Docker Engine `24+` (recomendado `25+`).
+- Docker Compose plugin `v2.20+` (comando `docker compose`).
 - Git (opcional, para versionamento).
+
+Validar versoes instaladas:
+
+```bash
+docker --version
+docker compose version
+```
 
 ## Configuracao
 

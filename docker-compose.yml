@@ -60,7 +60,7 @@
       OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: "true"
       WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
     networks:
-      n8n-ftr:
+      n8n_net:
       observability_net:
         aliases:
           - n8n
